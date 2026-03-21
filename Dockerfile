@@ -2,16 +2,32 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy everything needed for the monorepo install
+# Install openssl for Prisma
+RUN apk add --no-cache openssl
+
+# Copy monorepo root manifests
 COPY package.json package-lock.json ./
-COPY packages/ ./packages/
+
+# Copy all package manifests (needed for workspace install)
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/config/package.json ./packages/config/
 COPY apps/api/package.json ./apps/api/
 
-# Install dependencies (no audit, no vulnerability scan)
-RUN npm install --no-audit --no-fund --workspace=apps/api --workspace=packages/shared --workspace=packages/ui --workspace=packages/config --include-workspace-root
+# Install all workspace dependencies
+RUN npm install --no-audit --no-fund --include-workspace-root
+
+# Copy source for packages that need to be built first
+COPY packages/ ./packages/
+
+# Build @briefli/shared so the API can import from it
+RUN npm run build --workspace=packages/shared
 
 # Copy API source
 COPY apps/api/ ./apps/api/
+
+# Generate Prisma client
+RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 
 # Build the API
 WORKDIR /app/apps/api
