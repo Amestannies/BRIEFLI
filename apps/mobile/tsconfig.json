@@ -1,0 +1,9 @@
+{
+  "extends": "@briefli/config/tsconfig/react-native.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./app/*"],
+      "@briefli/shared": ["../../packages/shared/src"]
+    }
+  }
+}

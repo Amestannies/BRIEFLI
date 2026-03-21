@@ -1,0 +1,496 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// Enums
+// ============================================================
+
+enum PlanType {
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum UserRole {
+  ATTORNEY
+  PARALEGAL
+  ADMIN
+  STAFF
+  CLIENT
+}
+
+enum CaseType {
+  EVICTION
+  NON_PAYMENT
+  LEASE_DISPUTE
+  HABITABILITY
+  OTHER
+}
+
+enum Discipline {
+  LANDLORD_TENANT
+}
+
+enum CaseStatus {
+  INTAKE
+  ACTIVE
+  PENDING_COURT
+  JUDGMENT
+  APPEAL
+  CLOSED
+}
+
+enum EventType {
+  COURT_HEARING
+  DEADLINE
+  MEETING
+  DEPOSITION
+  TASK
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PAID
+  OVERDUE
+  VOID
+}
+
+enum SignatureStatus {
+  NONE
+  PENDING
+  SIGNED
+  DECLINED
+}
+
+enum NotificationType {
+  EVENT_REMINDER
+  DOCUMENT_UPLOADED
+  CLIENT_DOCUMENT_UPLOADED
+  INVOICE_PAID
+  INVOICE_OVERDUE
+  ECOURTS_DOCKET_UPDATE
+  MILESTONE_OVERDUE
+  NOTARIZATION_COMPLETE
+  PORTAL_MESSAGE
+}
+
+enum MeetingStatus {
+  REQUESTED
+  CONFIRMED
+  DECLINED
+  CANCELLED
+  COMPLETED
+}
+
+// ============================================================
+// Models
+// ============================================================
+
+model Firm {
+  id              String           @id @default(cuid())
+  name            String
+  slug            String           @unique
+  plan            PlanType         @default(STARTER)
+  logoUrl         String?
+  primaryColor    String?
+  timezone        String           @default("America/New_York")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  users           User[]
+  cases           Case[]
+  clients         Client[]
+  billingSettings BillingSettings?
+
+  @@index([slug])
+}
+
+model User {
+  id              String        @id @default(cuid())
+  firmId          String
+  firm            Firm          @relation(fields: [firmId], references: [id])
+  email           String        @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  role            UserRole
+  barNumber       String?
+  avatarUrl       String?
+  mfaEnabled      Boolean       @default(false)
+  mfaSecret       String?
+  googleCalToken    Json?
+  outlookCalToken   Json?
+  ecourtsUsername   String?
+  ecourtsCredential String?       // AES-256 encrypted password
+  ecourtsLastSync   DateTime?
+  isActive          Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+  assignedCases   CaseUser[]
+  timeEntries     TimeEntry[]
+  auditLogs       AuditLog[]
+  notifications   Notification[]
+
+  @@index([firmId])
+  @@index([email])
+}
+
+model Case {
+  id                String          @id @default(cuid())
+  firmId            String
+  firm              Firm            @relation(fields: [firmId], references: [id])
+  caseNumber        String?
+  internalRef       String
+  title             String
+  caseType          CaseType
+  discipline        Discipline      @default(LANDLORD_TENANT)
+  status            CaseStatus      @default(INTAKE)
+  court             String?
+  judge             String?
+  opposingCounsel   String?
+  propertyAddress   String?
+  openDate          DateTime        @default(now())
+  expectedCloseDate DateTime?
+  closedDate        DateTime?
+  description       String?
+  customFields      Json?
+  eCourtsCaseId     String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  deletedAt         DateTime?
+  users             CaseUser[]
+  clients           CaseClient[]
+  documents         Document[]
+  milestones        Milestone[]
+  events            CalendarEvent[]
+  timeEntries       TimeEntry[]
+  invoices          Invoice[]
+  ecourtsNotifs     EcourtNotification[]
+  notes             CaseNote[]
+  documentRequests  DocumentRequest[]
+  meetings          Meeting[]
+
+  @@index([firmId])
+  @@index([firmId, status])
+  @@index([firmId, caseType])
+  @@index([createdAt])
+}
+
+model CaseUser {
+  id        String   @id @default(cuid())
+  caseId    String
+  case      Case     @relation(fields: [caseId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  assignedAt DateTime @default(now())
+
+  @@unique([caseId, userId])
+  @@index([userId])
+}
+
+model Client {
+  id            String          @id @default(cuid())
+  firmId        String
+  firm          Firm            @relation(fields: [firmId], references: [id])
+  email         String
+  firstName     String
+  lastName      String
+  phone         String?
+  address       String?
+  portalEnabled Boolean         @default(false)
+  portalToken   String?         @unique
+  preferredLang String          @default("en")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  deletedAt     DateTime?
+  cases         CaseClient[]
+  documents     Document[]
+  messages      PortalMessage[]
+  documentRequests DocumentRequest[]
+  meetings      Meeting[]
+
+  @@index([firmId])
+  @@index([firmId, email])
+}
+
+model CaseClient {
+  id       String @id @default(cuid())
+  caseId   String
+  case     Case   @relation(fields: [caseId], references: [id])
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+
+  @@unique([caseId, clientId])
+}
+
+model Document {
+  id              String          @id @default(cuid())
+  firmId          String
+  caseId          String?
+  case            Case?           @relation(fields: [caseId], references: [id])
+  uploadedById    String
+  clientId        String?
+  client          Client?         @relation(fields: [clientId], references: [id])
+  fileName        String
+  fileKey         String
+  fileSize        Int
+  mimeType        String
+  folder          String          @default("general")
+  tags            String[]
+  version         Int             @default(1)
+  parentDocId     String?
+  ocrText         String?
+  isNotarized     Boolean         @default(false)
+  notarizationId  String?
+  signatureStatus SignatureStatus @default(NONE)
+  signatureDocId  String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+
+  @@index([firmId])
+  @@index([caseId])
+  @@index([uploadedById])
+}
+
+model Milestone {
+  id            String    @id @default(cuid())
+  caseId        String
+  case          Case      @relation(fields: [caseId], references: [id])
+  title         String
+  description   String?
+  dueDate       DateTime?
+  completedAt   DateTime?
+  completedById String?
+  order         Int
+  isTemplate    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([caseId])
+}
+
+model CalendarEvent {
+  id             String    @id @default(cuid())
+  firmId         String
+  caseId         String?
+  case           Case?     @relation(fields: [caseId], references: [id])
+  createdById    String
+  title          String
+  description    String?
+  eventType      EventType
+  startTime      DateTime
+  endTime        DateTime
+  location       String?
+  isAllDay       Boolean   @default(false)
+  attendeeIds    String[]
+  googleEventId       String?
+  outlookEventId      String?
+  ecourtsNotifId      String?
+  source              String    @default("manual") // manual | google | outlook | ecourts
+  reminderSent        Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([firmId])
+  @@index([firmId, startTime])
+  @@index([caseId])
+}
+
+model EcourtNotification {
+  id             String    @id @default(cuid())
+  firmId         String
+  userId         String                            // attorney who pulled it
+  caseId         String?
+  case           Case?     @relation(fields: [caseId], references: [id])
+  externalId     String                            // unique ID from eCourts page
+  title          String
+  body           String
+  court          String?
+  docketNumber   String?
+  eventDate      DateTime?
+  category       String?                           // HEARING, FILING, ORDER, etc.
+  raw            Json?                             // full scraped payload
+  importedToCalendar Boolean @default(false)
+  calendarEventId      String?
+  createdAt      DateTime  @default(now())
+
+  @@unique([userId, externalId])
+  @@index([firmId])
+  @@index([userId])
+}
+
+model TimeEntry {
+  id              String    @id @default(cuid())
+  firmId          String
+  caseId          String
+  case            Case      @relation(fields: [caseId], references: [id])
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  description     String
+  durationMinutes Int
+  hourlyRate      Decimal   @db.Decimal(10, 2)
+  isBillable      Boolean   @default(true)
+  invoiceId       String?
+  date            DateTime
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([firmId])
+  @@index([caseId])
+  @@index([userId])
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  firmId          String
+  caseId          String
+  case            Case          @relation(fields: [caseId], references: [id])
+  clientId        String
+  invoiceNumber   String        @unique
+  status          InvoiceStatus @default(DRAFT)
+  subtotal        Decimal       @db.Decimal(10, 2)
+  tax             Decimal       @db.Decimal(10, 2) @default(0)
+  total           Decimal       @db.Decimal(10, 2)
+  dueDate         DateTime
+  paidAt          DateTime?
+  stripePaymentId String?
+  paypalOrderId   String?
+  pdfKey          String?
+  lineItems       Json
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([firmId])
+  @@index([firmId, status])
+  @@index([clientId])
+}
+
+model CaseNote {
+  id          String   @id @default(cuid())
+  caseId      String
+  case        Case     @relation(fields: [caseId], references: [id])
+  authorId    String
+  body        String
+  isInternal  Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([caseId])
+}
+
+model BillingSettings {
+  id          String  @id @default(cuid())
+  firmId      String  @unique
+  firm        Firm    @relation(fields: [firmId], references: [id])
+  taxRate     Decimal @db.Decimal(5, 4) @default(0)
+  defaultRate Decimal @db.Decimal(10, 2) @default(0)
+  currency    String  @default("USD")
+  replyTo     String?
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  firmId    String
+  type      NotificationType
+  title     String
+  body      String
+  link      String?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@index([firmId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  firmId     String
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  resource   String
+  resourceId String
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([firmId])
+  @@index([userId])
+  @@index([resource, resourceId])
+}
+
+model PortalMessage {
+  id         String   @id @default(cuid())
+  firmId     String
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id])
+  caseId     String?
+  senderId   String
+  senderType String   // 'CLIENT' | 'FIRM'
+  body       String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([clientId])
+  @@index([firmId])
+}
+
+model DocumentRequest {
+  id           String    @id @default(cuid())
+  firmId       String
+  caseId       String
+  case         Case      @relation(fields: [caseId], references: [id])
+  clientId     String
+  client       Client    @relation(fields: [clientId], references: [id])
+  createdById  String
+  title        String
+  description  String?
+  dueDate      DateTime?
+  fulfilledAt  DateTime?
+  documentId   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([caseId])
+  @@index([clientId])
+  @@index([firmId])
+}
+
+model Meeting {
+  id               String        @id @default(cuid())
+  firmId           String
+  caseId           String?
+  case             Case?         @relation(fields: [caseId], references: [id])
+  clientId         String
+  client           Client        @relation(fields: [clientId], references: [id])
+  requestedByType  String        // 'CLIENT' | 'ATTORNEY'
+  requestedById    String
+  attorneyId       String?
+  title            String
+  proposedTimes    Json?         // array of proposed DateTime strings
+  confirmedTime    DateTime?
+  durationMinutes  Int           @default(60)
+  status           MeetingStatus @default(REQUESTED)
+  notes            String?
+  meetingLink      String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([firmId])
+  @@index([clientId])
+}

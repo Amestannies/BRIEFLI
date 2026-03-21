@@ -1,0 +1,33 @@
+export declare const CASE_STATUS_LABELS: Record<string, string>;
+export declare const CASE_STATUS_COLORS: Record<string, string>;
+export declare const CASE_TYPE_LABELS: Record<string, string>;
+export declare const EVENT_TYPE_LABELS: Record<string, string>;
+export declare const EVENT_TYPE_COLORS: Record<string, string>;
+export declare const USER_ROLE_LABELS: Record<string, string>;
+export declare const INVOICE_STATUS_LABELS: Record<string, string>;
+export declare const INVOICE_STATUS_COLORS: Record<string, string>;
+export declare const MILESTONE_TEMPLATES: Record<string, string[]>;
+export declare const ALLOWED_MIME_TYPES: string[];
+export declare const MAX_FILE_SIZE_BYTES: number;
+export declare const PAGINATION_DEFAULT_LIMIT = 20;
+export declare const PAGINATION_MAX_LIMIT = 100;
+export declare const JWT_ACCESS_EXPIRY = "15m";
+export declare const JWT_REFRESH_EXPIRY = "30d";
+export declare const ERROR_CODES: {
+    readonly INVALID_CREDENTIALS: "INVALID_CREDENTIALS";
+    readonly TOKEN_EXPIRED: "TOKEN_EXPIRED";
+    readonly MFA_REQUIRED: "MFA_REQUIRED";
+    readonly MFA_INVALID: "MFA_INVALID";
+    readonly CASE_NOT_FOUND: "CASE_NOT_FOUND";
+    readonly CASE_NO_ATTORNEY: "CASE_NO_ATTORNEY";
+    readonly CASE_CONFLICT: "CASE_CONFLICT";
+    readonly DOCUMENT_NOT_FOUND: "DOCUMENT_NOT_FOUND";
+    readonly INVALID_FILE_TYPE: "INVALID_FILE_TYPE";
+    readonly FILE_TOO_LARGE: "FILE_TOO_LARGE";
+    readonly INSUFFICIENT_PERMISSIONS: "INSUFFICIENT_PERMISSIONS";
+    readonly FIRM_ISOLATION_VIOLATION: "FIRM_ISOLATION_VIOLATION";
+    readonly NOT_FOUND: "NOT_FOUND";
+    readonly VALIDATION_ERROR: "VALIDATION_ERROR";
+    readonly INTERNAL_ERROR: "INTERNAL_ERROR";
+};
+//# sourceMappingURL=index.d.ts.map

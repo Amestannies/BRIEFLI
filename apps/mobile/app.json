@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Briefli",
+    "slug": "briefli",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.briefli.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Briefli uses the camera to scan documents.",
+        "NSFaceIDUsageDescription": "Briefli uses Face ID to authenticate you securely."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "app.briefli.mobile",
+      "permissions": ["CAMERA", "USE_BIOMETRIC", "USE_FINGERPRINT"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-camera",
+      "expo-local-authentication",
+      ["expo-notifications", { "icon": "./assets/notification-icon.png", "color": "#3b82f6" }]
+    ],
+    "scheme": "briefli",
+    "extra": {
+      "router": { "origin": false }
+    }
+  }
+}

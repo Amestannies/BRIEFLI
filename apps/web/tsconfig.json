@@ -1,0 +1,27 @@
+{
+  "extends": "@briefli/config/tsconfig/nextjs.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@briefli/shared": [
+        "../../packages/shared/src"
+      ],
+      "@briefli/ui": [
+        "../../packages/ui/src"
+      ]
+    },
+    "noEmit": true,
+    "isolatedModules": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
