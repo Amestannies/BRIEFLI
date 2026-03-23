@@ -1,38 +1,29 @@
 FROM node:20-alpine
 
-WORKDIR /app
-
 # Install openssl for Prisma
 RUN apk add --no-cache openssl
 
-# Copy monorepo root manifests
-COPY package.json package-lock.json ./
+WORKDIR /app
 
-# Copy all package manifests (needed for workspace install)
+# Copy package files for dependency install
+COPY package.json package-lock.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/ui/package.json ./packages/ui/
 COPY packages/config/package.json ./packages/config/
 COPY apps/api/package.json ./apps/api/
 
-# Install all workspace dependencies
-RUN npm install --no-audit --no-fund --include-workspace-root
+# Install production dependencies only (no build needed — using pre-built dist)
+RUN npm install --omit=dev --no-audit --no-fund --include-workspace-root
 
-# Copy source for packages that need to be built first
-COPY packages/ ./packages/
+# Copy pre-built dist files (built locally before pushing)
+COPY packages/shared/dist/ ./packages/shared/dist/
+COPY apps/api/dist/ ./apps/api/dist/
 
-# Build @briefli/shared so the API can import from it
-RUN npm run build --workspace=packages/shared
-
-# Copy API source
-COPY apps/api/ ./apps/api/
-
-# Generate Prisma client
-RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
-
-# Build the API
-WORKDIR /app/apps/api
-RUN npm run build
+# Copy Prisma schema and generate client for this platform
+COPY apps/api/prisma/ ./apps/api/prisma/
+RUN npx prisma generate --schema=./apps/api/prisma/schema.prisma
 
 EXPOSE 3001
 ENV NODE_ENV=production
+WORKDIR /app/apps/api
 CMD ["node", "dist/main"]

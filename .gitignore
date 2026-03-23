@@ -4,11 +4,12 @@ node_modules/
 .pnp.js
 
 # ── Build outputs ─────────────────────────────────────
-dist/
+# Note: apps/api/dist and packages/shared/dist are committed for Railway deployment
 build/
 .next/
 out/
 *.tsbuildinfo
+apps/web/.next/
 
 # ── Environment files (NEVER commit secrets) ──────────
 .env
@@ -48,7 +49,6 @@ skills/
 skills-lock.json
 
 # ── Compiled TypeScript output ────────────────────────
-apps/api/dist/
 apps/api/src/**/*.d.ts
 apps/api/src/**/*.d.ts.map
 apps/api/src/**/*.js.map
